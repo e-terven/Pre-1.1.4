@@ -19,6 +19,8 @@ public class Util {
     private static final String URL = "jdbc:mysql://localhost:3306/new_schema";
     private static final String USER = "root";
     private static final String PASSWORD = "mysql33!";
+    private static final String DIALECT = "org.hibernate.dialect.MySQL5Dialect";
+    private static SessionFactory sessionFactory;
 
     public static Connection getConnection() {
         Connection con = null;
@@ -26,7 +28,7 @@ public class Util {
             Class.forName(DRIVER); // наличие JDBC драйвера для работы с БД
             con = DriverManager.getConnection(URL, USER, PASSWORD);
             System.out.println(con.isClosed());
-        } catch (SQLException e ) {
+        } catch (SQLException e) {
             System.out.println("Error: Unable to Connect to Database.");
             e.printStackTrace();
         } catch (ClassNotFoundException e) {
@@ -34,26 +36,34 @@ public class Util {
         }
         return con;
     }
+
     public static SessionFactory getSessionFactory() {
-        Properties properties = new Properties();
-        properties.setProperty(Environment.DRIVER, DRIVER);
-        properties.setProperty(Environment.URL, URL);
-        properties.setProperty(Environment.USER, USER);
-        properties.setProperty(Environment.PASS, PASSWORD);
 
-        StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
-                .applySettings(properties)
-                .build();
+        if (sessionFactory == null) {
+            try {
+                Properties properties = new Properties();
+                Configuration configuration = new Configuration();
+                //SessionFactory sessionFactory = null;
 
-        Configuration configuration = new Configuration();
-        configuration.addAnnotatedClass(User.class);
+                properties.put(Environment.DRIVER, "com.mysql.cj.jdbc.Driver");
+                properties.put(Environment.URL, URL);
+                properties.put(Environment.USER, USER);
+                properties.put(Environment.PASS, PASSWORD);
+                properties.put(Environment.DIALECT, DIALECT);
 
-        try {
-            return configuration.buildSessionFactory(serviceRegistry);
-        } catch (HibernateException e) {
-            e.printStackTrace();
-            System.err.println("Initial SessionFactory creation failed.");
-            return null;
+                configuration.setProperties(properties)
+                        .addAnnotatedClass(User.class);
+
+                StandardServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
+                        .applySettings(configuration.getProperties())
+                        .build();
+                sessionFactory = configuration.buildSessionFactory(serviceRegistry);
+
+            } catch (HibernateException e) {
+                e.printStackTrace();
+                System.err.println("Initial SessionFactory creation failed.");
+            }
         }
+        return sessionFactory;
     }
 }
